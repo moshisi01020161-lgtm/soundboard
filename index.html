@@ -600,6 +600,138 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    /* ── DROP ZONE ───────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 22px 16px;
+      margin-top: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .25s, background .25s, transform .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drop-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(124, 106, 247, .06), rgba(94, 184, 255, .06));
+      opacity: 0;
+      transition: opacity .25s;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent1);
+      background: rgba(124, 106, 247, .06);
+    }
+
+    .drop-zone:hover::before,
+    .drop-zone.drag-over::before {
+      opacity: 1;
+    }
+
+    .drop-zone.drag-over {
+      border-color: var(--accent2);
+      transform: scale(1.01);
+      box-shadow: 0 0 0 4px rgba(94, 184, 255, .15);
+    }
+
+    .drop-zone-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(124, 106, 247, .2), rgba(94, 184, 255, .2));
+      margin-bottom: 10px;
+      transition: transform .3s;
+    }
+
+    .drop-zone:hover .drop-zone-icon,
+    .drop-zone.drag-over .drop-zone-icon {
+      transform: scale(1.15) translateY(-2px);
+    }
+
+    .drop-zone p {
+      color: var(--muted);
+      font-size: .85rem;
+      line-height: 1.5;
+    }
+
+    .drop-zone p strong {
+      color: var(--accent2);
+      font-weight: 600;
+    }
+
+    .drop-zone-or {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0 4px;
+      color: var(--muted);
+      font-size: .75rem;
+    }
+
+    .drop-zone-or::before,
+    .drop-zone-or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* page-level drag overlay */
+    #page-drop-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: rgba(13, 15, 23, .82);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    #page-drop-overlay.active {
+      display: flex;
+      pointer-events: auto;
+    }
+
+    #page-drop-overlay .overlay-ring {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 3px dashed var(--accent2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: overlayPulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes overlayPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(94, 184, 255, .4); }
+      50% { box-shadow: 0 0 0 20px rgba(94, 184, 255, 0); }
+    }
+
+    #page-drop-overlay p {
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    #page-drop-overlay .sub {
+      color: var(--muted);
+      font-size: .85rem;
+      margin-top: -8px;
+    }
+
     /* ── SCROLLBAR ───────────────────────────────────────── */
     ::-webkit-scrollbar {
       width: 6px;
@@ -654,8 +786,23 @@
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        追加する
+        URLで追加する
       </button>
+
+      <!-- DROP ZONE -->
+      <div class="drop-zone-or">または</div>
+      <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="音声ファイルをドロップまたはクリックして選択">
+        <div class="drop-zone-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <p><strong>ファイルをここにドロップ</strong><br />または <strong>クリックして選択</strong></p>
+        <p style="font-size:.75rem; margin-top:6px;">MP3 / WAV / OGG / FLAC / M4A など音声ファイル対応・複数同時OK</p>
+        <input type="file" id="file-input" accept="audio/*" multiple style="display:none;" />
+      </div>
     </div>
 
     <!-- STATS -->
@@ -678,6 +825,19 @@
       </svg>
       <p>まだ音声が登録されていません。<br />上のフォームからURLと題名を入力して追加してください。</p>
     </div>
+  </div>
+
+  <!-- PAGE DROP OVERLAY -->
+  <div id="page-drop-overlay" aria-hidden="true">
+    <div class="overlay-ring">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <p>音声ファイルをドロップ</p>
+    <p class="sub">複数ファイルを同時に追加できます</p>
   </div>
 
   <!-- TOAST -->
@@ -853,7 +1013,7 @@
         : `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg> 再生`;
     }
 
-    // ─── ADD ──────────────────────────────────────────────────────────────────
+    // ─── ADD (URL) ────────────────────────────────────────────────────────────
     function addSound() {
       const titleEl = document.getElementById('input-title');
       const urlEl = document.getElementById('input-url');
@@ -873,6 +1033,79 @@
       titleEl.focus();
       showToast('✅ 追加しました！');
     }
+
+    // ─── ADD FROM FILE ────────────────────────────────────────────────────────
+    function addSoundsFromFiles(files) {
+      let added = 0;
+      let skipped = 0;
+      Array.from(files).forEach(file => {
+        if (!file.type.startsWith('audio/')) {
+          skipped++;
+          return;
+        }
+        const objectUrl = URL.createObjectURL(file);
+        // ファイル名から拡張子を除いてタイトルに使う
+        const title = file.name.replace(/\.[^.]+$/, '');
+        sounds.push({ id: crypto.randomUUID(), title, url: objectUrl, favorite: false, isLocal: true });
+        added++;
+      });
+
+      if (added > 0) {
+        save();
+        render();
+        showToast(`✅ ${added} 件の音声を追加しました！${ skipped > 0 ? ` (${skipped} 件はスキップ)` : '' }`);
+      } else if (skipped > 0) {
+        showToast('⚠️ 音声ファイルが見つかりませんでした');
+      }
+    }
+
+    // ─── DRAG & DROP ──────────────────────────────────────────────────────────
+    (function initDrop() {
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('file-input');
+      const overlay  = document.getElementById('page-drop-overlay');
+      let dragCounter = 0; // ページ全体の dragenter/leave カウント
+
+      // ── Drop zone: クリックでファイル選択 ──
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+      fileInput.addEventListener('change', e => addSoundsFromFiles(e.target.files));
+
+      // ── Drop zone: ドラッグイベント ──
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+      dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        addSoundsFromFiles(e.dataTransfer.files);
+      });
+
+      // ── ページ全体: ドラッグ検出でオーバーレイ表示 ──
+      document.addEventListener('dragenter', e => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        dragCounter++;
+        overlay.classList.add('active');
+      });
+
+      document.addEventListener('dragleave', () => {
+        dragCounter--;
+        if (dragCounter <= 0) {
+          dragCounter = 0;
+          overlay.classList.remove('active');
+        }
+      });
+
+      document.addEventListener('dragover', e => e.preventDefault());
+
+      document.addEventListener('drop', e => {
+        e.preventDefault();
+        dragCounter = 0;
+        overlay.classList.remove('active');
+        if (e.dataTransfer.files.length > 0) {
+          addSoundsFromFiles(e.dataTransfer.files);
+        }
+      });
+    })();
 
     // ─── DELETE ───────────────────────────────────────────────────────────────
     function deleteSound(id) {
